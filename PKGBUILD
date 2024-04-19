@@ -1,57 +1,33 @@
 # Maintainer: Daniel Bermond <dbermond@archlinux.org>
 
 pkgname=rockchip-mpp
-pkgver=20171218
-pkgrel=4
+pkgver=1.0.5
+pkgrel=1
+epoch=1
 pkgdesc='Rockchip Media Process Platform (MPP)'
 arch=('x86_64')
 url='https://github.com/rockchip-linux/mpp/'
-license=('Apache')
+license=('Apache-2.0' 'MIT')
 depends=('gcc-libs')
 makedepends=('cmake')
-source=("${pkgname}-${pkgver}".tar.gz::"https://github.com/rockchip-linux/mpp/archive/release_${pkgver}.tar.gz"
-        '010-rockchip-mpp-gcc10-fix.patch')
-sha256sums=('03b4f093e23fa480c3c46a07059fb297d352e5b3d050f4da4869c1ade8adc125'
-            '6131a5a81940707af99e248669dc4a2072618901ef0004950a2f71e45d854224')
-
-prepare() {
-    patch -d "mpp-release_${pkgver}" -Np1 -i "${srcdir}/010-rockchip-mpp-gcc10-fix.patch"
-}
+source=("https://github.com/rockchip-linux/mpp/archive/${pkgver}/${pkgname}-${pkgver}.tar.gz")
+sha256sums=('b162455551edb3dcefcb86710951b06ac67eeb82c9d5615a8c052d4330cbb306')
 
 build() {
-    cmake -B build -S "mpp-release_${pkgver}" \
-        -DAVSD_TEST:BOOL='OFF' \
+    cmake -B build -S "mpp-${pkgver}" \
+        -G 'Unix Makefiles' \
         -DCMAKE_BUILD_TYPE:STRING='None' \
-        -DCMAKE_INSTALL_LIBDIR:PATH='lib' \
         -DCMAKE_INSTALL_PREFIX:PATH='/usr' \
-        -DH264D_TEST:BOOL='OFF' \
-        -DH265D_TEST:BOOL='OFF' \
-        -DJPEGD_TEST:BOOL='OFF' \
-        -DMPI_DEC_TEST:BOOL='OFF' \
-        -DMPI_ENC_TEST:BOOL='OFF' \
-        -DMPI_RC2_TEST:BOOL='OFF' \
-        -DMPI_RC_TEST:BOOL='OFF' \
-        -DMPI_TEST:BOOL='OFF' \
-        -DMPP_BUFFER_TEST:BOOL='OFF' \
-        -DMPP_ENV_TEST:BOOL='OFF' \
-        -DMPP_INFO_TEST:BOOL='OFF' \
-        -DMPP_LOG_TEST:BOOL='OFF' \
-        -DMPP_MEM_TEST:BOOL='OFF' \
-        -DMPP_PACKET_TEST:BOOL='OFF' \
-        -DMPP_PLATFORM_TEST:BOOL='OFF' \
-        -DMPP_TASK_TEST:BOOL='OFF' \
-        -DMPP_THREAD_TEST:BOOL='OFF' \
-        -DRKPLATFORM:BOOL='ON' \
-        -DVP9D_TEST:BOOL='OFF' \
-        -DVPU_API_TEST:BOOL='OFF' \
-        -DHAVE_DRM:BOOL='ON' \
+        -DENABLE_VPROC_VDPP:BOOL='ON' \
         -Wno-dev
-    make -C build
+    cmake --build build
+}
+
+check() {
+    ctest --test-dir build --output-on-failure
 }
 
 package() {
-    make -C build DESTDIR="$pkgdir" install
-    
-    # remove static libs that are not removed by '!staticlibs' option
-    rm "$pkgdir"/usr/lib/lib*_static.a
+    DESTDIR="$pkgdir" cmake --install build
+    install -D -m644 "mpp-${pkgver}/LICENSES/MIT" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE-MIT"
 }
